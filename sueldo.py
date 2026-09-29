@@ -587,7 +587,7 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# SECCIÓN 5: GRÁFICOS DINÁMICOS - EVOLUCIÓN MENSUAL DESLIZABLE (DESPLAZAMIENTO HORIZONTAL EN MÓVIL)
+# SECCIÓN 5: GRÁFICOS DINÁMICOS - EVOLUCIÓN ANUAL EN BARRAS HORIZONTALES (ESTÁTICO)
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -601,7 +601,7 @@ st.markdown(
 vista_grafico = st.radio(
     "Seleccionar Vista de Gráfico:",
     options=[
-        "Evolución Mensual",
+        "Evolución Anual",
         "Ingresos Netos",
         "Ingresos Gravables",
         "Beneficios de Ley",
@@ -610,50 +610,20 @@ vista_grafico = st.radio(
     horizontal=True,
 )
 
-if vista_grafico == "Evolución Mensual":
-  df_evo = df_filtrado.copy().sort_values(by=["AÑO", "MES_NUM"], ascending=True)
-  df_evo["PERIODO"] = df_evo.apply(
-      lambda r: (
-          f"{str(r['MESES']).capitalize()[:3]} {str(int(r['AÑO']))[2:]}"
-      ),
-      axis=1,
+if vista_grafico == "Evolución Anual":
+  df_evo_anual = (
+      df_raw.groupby("AÑO")["INGRESO_NETO"]
+      .sum()
+      .reset_index()
+      .sort_values(by="AÑO", ascending=True)
   )
-
-  # SELECTOR DE RANGO PARA FILTRAR VISTA
-  st.markdown(
-      "<div style='margin-top: 4px; margin-bottom: 2px;'></div>",
-      unsafe_allow_html=True,
-  )
-  rango_evo = st.radio(
-      "Ver Rango de Meses:",
-      options=["Últimos 12 meses", "Últimos 24 meses", "Todos los meses"],
-      index=0,
-      horizontal=True,
-  )
-
-  if rango_evo == "Últimos 12 meses":
-    df_evo_plot = df_evo.tail(12).copy()
-  elif rango_evo == "Últimos 24 meses":
-    df_evo_plot = df_evo.tail(24).copy()
-  else:
-    df_evo_plot = df_evo.copy()
-
-  t1 = "Evolución Mensual del Ingreso Neto"
-  sub_title_txt = f"{rango_evo} ({len(df_evo_plot)} meses)"
-  title_html = (
-      f"<b>{t1}</b><br><span style='font-size: 0.88rem; font-weight: 600;"
-      f" color: #38BDF8;'>👉 Desliza lateralmente para explorar |"
-      f" {sub_title_txt}</span>"
-  )
-
-  # CALCULO DE ANCHO DINÁMICO PARA PERMITIR SCROLL / DESPLAZAMIENTO SUAVE CON EL DEDO EN MÓVIL
-  num_bars = len(df_evo_plot)
-  calc_width = max(380, num_bars * 52)
+  df_evo_anual["AÑO_STR"] = df_evo_anual["AÑO"].astype(str)
 
   fig = px.bar(
-      df_evo_plot,
-      x="PERIODO",
-      y="INGRESO_NETO",
+      df_evo_anual,
+      x="INGRESO_NETO",
+      y="AÑO_STR",
+      orientation="h",
       text_auto="$,.0f",
       color="INGRESO_NETO",
       color_continuous_scale=["#107C41", "#00E676", "#38BDF8"],
@@ -661,34 +631,46 @@ if vista_grafico == "Evolución Mensual":
 
   fig.update_traces(
       textposition="outside",
-      hovertemplate="<b>%{x}</b><br>Ingreso Neto: $%{y:,.2f}<extra></extra>",
+      hovertemplate=(
+          "<b>Año %{y}</b><br>Ingreso Neto Total: $%{x:,.2f}<extra></extra>"
+      ),
       marker=dict(line=dict(color="#0E1117", width=1.5)),
+  )
+
+  fig.update_xaxes(
+      showgrid=False,
+      zeroline=False,
+      showticklabels=False,
+      fixedrange=True,
+  )
+
+  fig.update_yaxes(
+      showgrid=False,
+      type="category",
+      fixedrange=True,
+      title_text="",
   )
 
   fig.update_layout(
       title=dict(
-          text=title_html,
+          text="<b>Evolución Anual</b>",
           x=0.5,
           xanchor="center",
-          y=0.95,
+          y=0.92,
           yanchor="top",
-          font=dict(size=16, color="#FFFFFF", family="sans-serif"),
+          font=dict(size=18, color="#FFFFFF", family="sans-serif"),
       ),
-      width=calc_width,
-      xaxis_title="",
-      yaxis_title="Ingreso Neto ($)",
       coloraxis_showscale=False,
       paper_bgcolor="rgba(0,0,0,0)",
       plot_bgcolor="rgba(0,0,0,0)",
-      font=dict(color="#FAFAFA", family="sans-serif", size=12),
-      margin=dict(t=85, b=50, l=10, r=10),
-      height=430,
+      font=dict(color="#FAFAFA", family="sans-serif", size=13),
+      margin=dict(t=50, b=20, l=10, r=60),
+      height=320,
   )
 
-  # use_container_width=False permite activar el contenedor horizontal scrollable en móviles
   st.plotly_chart(
       fig,
-      use_container_width=False,
+      use_container_width=True,
       config={"displayModeBar": False},
   )
 
