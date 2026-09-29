@@ -587,7 +587,7 @@ st.markdown(
 )
 
 # ---------------------------------------------------------
-# SECCIÓN 5: GRÁFICOS DINÁMICOS - EVOLUCIÓN ANUAL EN BARRAS HORIZONTALES (ESTÁTICO)
+# SECCIÓN 5: GRÁFICOS DINÁMICOS - EVOLUCIÓN ANUAL INTELIGENTE Y RESPONSIVA
 # ---------------------------------------------------------
 st.markdown(
     """
@@ -619,6 +619,15 @@ if vista_grafico == "Evolución Anual":
   )
   df_evo_anual["AÑO_STR"] = df_evo_anual["AÑO"].astype(str)
 
+  # CÁLCULO DINÁMICO DE POSICIÓN DE TEXTO
+  # Si la barra supera el 50% del valor máximo, la etiqueta se coloca DENTRO de la barra.
+  # Si la barra es corta, se coloca AFUERA a la derecha.
+  max_val = df_evo_anual["INGRESO_NETO"].max() if not df_evo_anual.empty else 1.0
+  text_positions = [
+      "inside" if val > (max_val * 0.50) else "outside"
+      for val in df_evo_anual["INGRESO_NETO"]
+  ]
+
   fig = px.bar(
       df_evo_anual,
       x="INGRESO_NETO",
@@ -630,18 +639,22 @@ if vista_grafico == "Evolución Anual":
   )
 
   fig.update_traces(
-      textposition="outside",
+      textposition=text_positions,
+      textfont=dict(size=12, color="#FFFFFF"),
+      insidetextanchor="end",
       hovertemplate=(
           "<b>Año %{y}</b><br>Ingreso Neto Total: $%{x:,.2f}<extra></extra>"
       ),
       marker=dict(line=dict(color="#0E1117", width=1.5)),
   )
 
+  # MARGEN EXTRA DEL 15% EN EL EJE X PARA QUE EL TEXTO EXTERNO NUNCA SE CORTE EN EL BORDE
   fig.update_xaxes(
       showgrid=False,
       zeroline=False,
       showticklabels=False,
       fixedrange=True,
+      range=[0, max_val * 1.15],
   )
 
   fig.update_yaxes(
@@ -664,7 +677,7 @@ if vista_grafico == "Evolución Anual":
       paper_bgcolor="rgba(0,0,0,0)",
       plot_bgcolor="rgba(0,0,0,0)",
       font=dict(color="#FAFAFA", family="sans-serif", size=13),
-      margin=dict(t=50, b=20, l=10, r=60),
+      margin=dict(t=50, b=10, l=10, r=25),
       height=320,
   )
 
