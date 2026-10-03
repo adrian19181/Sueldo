@@ -179,6 +179,13 @@ st.markdown(
             gap: 6px;
         }
 
+        .kpi-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
         .kpi-grid-3 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -243,10 +250,12 @@ st.markdown(
         .kpi-val-base { font-size: 1.05rem; font-weight: 800; color: #38BDF8; }
         .kpi-val-extra { font-size: 1.05rem; font-weight: 800; color: #FBBF24; }
         .kpi-val-bono { font-size: 1.05rem; font-weight: 800; color: #F59E0B; }
+        .kpi-val-tot-grav { font-size: 1.05rem; font-weight: 800; color: #38BDF8; }
 
         .kpi-val-dec3 { font-size: 1.05rem; font-weight: 800; color: #A7F3D0; }
         .kpi-val-dec4 { font-size: 1.05rem; font-weight: 800; color: #818CF8; }
         .kpi-val-fondo { font-size: 1.05rem; font-weight: 800; color: #C084FC; }
+        .kpi-val-tot-ben { font-size: 1.05rem; font-weight: 800; color: #E879F9; }
 
         .kpi-val-iess { font-size: 1.05rem; font-weight: 800; color: #FF5252; }
         .kpi-val-cesantia { font-size: 1.05rem; font-weight: 800; color: #E879F9; }
@@ -261,9 +270,11 @@ st.markdown(
             .kpi-val-base, .kpi-val-extra, .kpi-val-bono, 
             .kpi-val-dec3, .kpi-val-dec4, .kpi-val-fondo, 
             .kpi-val-iess, .kpi-val-cesantia,
-            .kpi-val-promedio, .kpi-val-eficiencia { font-size: 0.95rem !important; }
+            .kpi-val-promedio, .kpi-val-eficiencia,
+            .kpi-val-tot-grav, .kpi-val-tot-ben { font-size: 0.95rem !important; }
             .kpi-val-neto { font-size: 1.25rem !important; }
             .time-unit-val-years, .time-unit-val-months, .time-unit-val-days { font-size: 1.10rem !important; }
+            .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
     """,
@@ -469,6 +480,7 @@ tot_materia_gravable = tot_sueldo_base + tot_horas_extras + tot_bonos
 tot_decimo_tercero = df_filtrado["DECIMO TERCERO"].sum()
 tot_decimo_cuarto = df_filtrado["DECIMO CUARTO"].sum()
 tot_fondos_reserva = df_filtrado["FONDOS DE RESERVA"].sum()
+tot_beneficios_ley = tot_decimo_tercero + tot_decimo_cuarto + tot_fondos_reserva
 
 tot_iess = df_filtrado["IESS"].sum()
 tot_cesantia_est = tot_materia_gravable * 0.03
@@ -503,7 +515,7 @@ st.markdown(
     <div class="section-header" style="color: #38BDF8;">
         💵 1. Ingresos Gravables ({subtitulo_periodo})
     </div>
-    <div class="kpi-grid-3">
+    <div class="kpi-grid-4">
         <div class="kpi-card-box">
             <div class="kpi-lbl">Sueldo Base</div>
             <div class="kpi-val-base">${tot_sueldo_base:,.2f}</div>
@@ -516,6 +528,10 @@ st.markdown(
             <div class="kpi-lbl">Bonos</div>
             <div class="kpi-val-bono">${tot_bonos:,.2f}</div>
         </div>
+        <div class="kpi-card-subtotal">
+            <div class="kpi-lbl">Ingresos Gravables Totales</div>
+            <div class="kpi-val-tot-grav">${tot_materia_gravable:,.2f}</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -527,7 +543,7 @@ st.markdown(
     <div class="section-header" style="color: #C084FC;">
         🎁 2. Beneficios de Ley
     </div>
-    <div class="kpi-grid-3">
+    <div class="kpi-grid-4">
         <div class="kpi-card-box">
             <div class="kpi-lbl">Décimo Tercero</div>
             <div class="kpi-val-dec3">${tot_decimo_tercero:,.2f}</div>
@@ -540,6 +556,10 @@ st.markdown(
             <div class="kpi-lbl">Fondos de Reserva</div>
             <div class="kpi-val-fondo">${tot_fondos_reserva:,.2f}</div>
         </div>
+        <div class="kpi-card-subtotal">
+            <div class="kpi-lbl">Beneficios de Ley Totales</div>
+            <div class="kpi-val-tot-ben">${tot_beneficios_ley:,.2f}</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -549,7 +569,7 @@ st.markdown(
 st.markdown(
     f"""
     <div class="section-header" style="color: #F472B6;">
-        🛡️ 3. Aportaciones e IESS / Cesantía
+        🛡️ 3. Aportaciones: IESS / Cesantía
     </div>
     <div class="kpi-grid-2">
         <div class="kpi-card-box">
