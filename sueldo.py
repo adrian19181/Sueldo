@@ -725,6 +725,8 @@ elif vista_grafico == "Ingresos Netos":
     t1 = "Distribución Mensual de Ingresos Netos"
     t2 = f"Año {f_anio}"
 
+  tot_neto_graf = df_pie_neto["INGRESO_NETO"].sum()
+
   colors_neto = [
       "#38BDF8",
       "#00E676",
@@ -742,7 +744,7 @@ elif vista_grafico == "Ingresos Netos":
 
   title_html = (
       f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2}</span>"
+      f" 600;'>{t2} • Total: ${tot_neto_graf:,.2f}</span>"
   )
 
   fig = px.pie(
@@ -817,10 +819,11 @@ elif vista_grafico == "Ingresos Gravables":
   sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
   t1 = "Composición de Ingresos Gravables"
   t2 = f"({sub_txt})"
+  tot_grav_graf = df_grav_pie["Monto"].sum()
 
   title_html = (
       f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2}</span>"
+      f" 600;'>{t2} • Total: ${tot_grav_graf:,.2f}</span>"
   )
 
   fig = px.pie(
@@ -895,10 +898,11 @@ elif vista_grafico == "Beneficios de Ley":
   sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
   t1 = "Composición de Beneficios de Ley"
   t2 = f"({sub_txt})"
+  tot_ben_graf = df_ben_pie["Monto"].sum()
 
   title_html = (
       f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2}</span>"
+      f" 600;'>{t2} • Total: ${tot_ben_graf:,.2f}</span>"
   )
 
   fig = px.pie(
