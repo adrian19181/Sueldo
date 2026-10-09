@@ -957,38 +957,38 @@ elif vista_grafico == "Beneficios de Ley":
   )
 
 # ---------------------------------------------------------
-# SECCIÓN 6: KPIS IMPUESTO A LA RENTA
+# SECCIÓN 6: KPIS IMPUESTO A LA RENTA (SOLO CUANDO SE SELECCIONA UN AÑO ESPECÍFICO)
 # ---------------------------------------------------------
-base_imponible_ir = tot_materia_gravable - tot_iess
-limite_ir = 12081.00
-paga_ir_bool = base_imponible_ir > limite_ir
+if f_anio != "Todos":
+  base_imponible_ir = tot_materia_gravable - tot_iess
+  limite_ir = 12081.00
+  paga_ir_bool = base_imponible_ir > limite_ir
 
-estado_ir_texto = "Sí Paga Impuestos" if paga_ir_bool else "No Paga Impuestos"
-color_estado_ir = "#FF5252" if paga_ir_bool else "#00E676"
-sub_ir_periodo = f"Año {f_anio}" if f_anio != "Todos" else "Total Acumulado"
+  estado_ir_texto = "Sí Paga Impuestos" if paga_ir_bool else "No Paga Impuestos"
+  color_estado_ir = "#FF5252" if paga_ir_bool else "#00E676"
 
-st.markdown(
-    f"""
-    <div class="section-header" style="color: #FBBF24; margin-top: 18px;">
-        🏛️ Cálculo Impuesto a la Renta ({sub_ir_periodo})
-    </div>
-    <div class="kpi-grid-3">
-        <div class="kpi-card-box">
-            <div class="kpi-lbl">Ingreso Neto Gravable</div>
-            <div class="kpi-val-tot-grav">${base_imponible_ir:,.2f}</div>
-        </div>
-        <div class="kpi-card-box">
-            <div class="kpi-lbl">Base Mínima IR</div>
-            <div class="kpi-val-base">${limite_ir:,.2f}</div>
-        </div>
-        <div class="kpi-card-box" style="border-color: {color_estado_ir};">
-            <div class="kpi-lbl">Estado Impuestos</div>
-            <div style="font-size: 0.95rem; font-weight: 900; color: {color_estado_ir};">{estado_ir_texto}</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+  st.markdown(
+      f"""
+      <div class="section-header" style="color: #FBBF24; margin-top: 18px;">
+          🏛️ Cálculo Impuesto a la Renta (Año {f_anio})
+      </div>
+      <div class="kpi-grid-3">
+          <div class="kpi-card-box">
+              <div class="kpi-lbl">Ingreso Neto Gravable</div>
+              <div class="kpi-val-tot-grav">${base_imponible_ir:,.2f}</div>
+          </div>
+          <div class="kpi-card-box">
+              <div class="kpi-lbl">Base Mínima IR</div>
+              <div class="kpi-val-base">${limite_ir:,.2f}</div>
+          </div>
+          <div class="kpi-card-box" style="border-color: {color_estado_ir};">
+              <div class="kpi-lbl">Estado Impuestos</div>
+              <div style="font-size: 0.95rem; font-weight: 900; color: {color_estado_ir};">{estado_ir_texto}</div>
+          </div>
+      </div>
+      """,
+      unsafe_allow_html=True,
+  )
 
 if __name__ == "__main__":
   if "streamlit" not in sys.argv[0]:
