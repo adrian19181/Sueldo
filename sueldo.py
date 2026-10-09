@@ -66,6 +66,14 @@ st.markdown(
             max-width: 740px !important; 
         }
 
+        /* PERMITIR DESPLAZAMIENTO VERTICAL TÁCTIL SOBRE GRÁFICOS PLOTLY EN MÓVIL */
+        [data-testid="stPlotlyChart"], .js-plotly-plot, .plot-container {
+            touch-action: pan-y !important;
+        }
+        .js-plotly-plot .plotly .draglayer {
+            pointer-events: none !important;
+        }
+
         /* TÍTULOS Y TEXTOS */
         h1, h2, h3, h4, h5, h6, [data-testid="stMarkdownContainer"] h3 {
             color: #FFFFFF !important;
