@@ -639,9 +639,6 @@ if vista_grafico == "Evolución Anual":
   )
   df_evo_anual["AÑO_STR"] = df_evo_anual["AÑO"].astype(str)
 
-  # CÁLCULO DINÁMICO DE POSICIÓN DE TEXTO
-  # Si la barra supera el 50% del valor máximo, la etiqueta se coloca DENTRO de la barra.
-  # Si la barra es corta, se coloca AFUERA a la derecha.
   max_val = df_evo_anual["INGRESO_NETO"].max() if not df_evo_anual.empty else 1.0
   text_positions = [
       "inside" if val > (max_val * 0.50) else "outside"
@@ -668,7 +665,6 @@ if vista_grafico == "Evolución Anual":
       marker=dict(line=dict(color="#0E1117", width=1.5)),
   )
 
-  # MARGEN EXTRA DEL 15% EN EL EJE X PARA QUE EL TEXTO EXTERNO NUNCA SE CORTE EN EL BORDE
   fig.update_xaxes(
       showgrid=False,
       zeroline=False,
@@ -959,3 +955,41 @@ elif vista_grafico == "Beneficios de Ley":
       use_container_width=True,
       config={"displayModeBar": False, "responsive": True},
   )
+
+# ---------------------------------------------------------
+# SECCIÓN 6: KPIS IMPUESTO A LA RENTA
+# ---------------------------------------------------------
+base_imponible_ir = tot_materia_gravable - tot_iess
+limite_ir = 12081.00
+paga_ir_bool = base_imponible_ir > limite_ir
+
+estado_ir_texto = "Sí Paga Impuestos" if paga_ir_bool else "No Paga Impuestos"
+color_estado_ir = "#FF5252" if paga_ir_bool else "#00E676"
+sub_ir_periodo = f"Año {f_anio}" if f_anio != "Todos" else "Total Acumulado"
+
+st.markdown(
+    f"""
+    <div class="section-header" style="color: #FBBF24; margin-top: 18px;">
+        🏛️ Cálculo Impuesto a la Renta ({sub_ir_periodo})
+    </div>
+    <div class="kpi-grid-3">
+        <div class="kpi-card-box">
+            <div class="kpi-lbl">Ingreso Neto Gravable</div>
+            <div class="kpi-val-tot-grav">${base_imponible_ir:,.2f}</div>
+        </div>
+        <div class="kpi-card-box">
+            <div class="kpi-lbl">Base Mínima IR</div>
+            <div class="kpi-val-base">${limite_ir:,.2f}</div>
+        </div>
+        <div class="kpi-card-box" style="border-color: {color_estado_ir};">
+            <div class="kpi-lbl">Estado Impuestos</div>
+            <div style="font-size: 0.95rem; font-weight: 900; color: {color_estado_ir};">{estado_ir_texto}</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+if __name__ == "__main__":
+  if "streamlit" not in sys.argv[0]:
+    os.system(f'streamlit run "{__file__}" --server.port 8501')
