@@ -608,7 +608,8 @@ st.markdown(
         <div class="kpi-card-subtotal">
             <div class="kpi-lbl">💡 Eficiencia del Ingreso</div>
             <div class="kpi-val-eficiencia">{porcentaje_eficiencia:.2f}% <span style="font-size:0.75rem; color:#94A3B8;">Líquido</span></div>
-            <div style="font-size: 0.62rem; color: #94A3B8; font-weight: 600; margin-top: 3px;">(Ingreso Neto / Ingreso Bruto) × 100</div>
+            <div style="font-size: 0.72rem; color: #38BDF8; font-weight: 700; margin-top: 2px;">Bruto Total: ${tot_ingreso_bruto:,.2f}</div>
+            <div style="font-size: 0.62rem; color: #94A3B8; font-weight: 600; margin-top: 2px;">(Ingreso Neto / Ingreso Bruto) × 100</div>
         </div>
     </div>
     """,
