@@ -15,9 +15,9 @@ import streamlit.components.v1 as components
 # AUTO-LANZADOR AUTOMÁTICO AL HACER DOBLE CLIC EN WINDOWS
 # ---------------------------------------------------------
 if __name__ == "__main__" and not st.runtime.exists():
-  script_path = os.path.abspath(__file__)
-  subprocess.run([sys.executable, "-m", "streamlit", "run", script_path])
-  sys.exit()
+    script_path = os.path.abspath(__file__)
+    subprocess.run([sys.executable, "-m", "streamlit", "run", script_path])
+    sys.exit()
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN DE PÁGINA (OPTIMIZADA PARA MÓVIL)
@@ -297,115 +297,115 @@ DRIVE_FILE_ID = "1ua-Go3LFKaBswhoeCdlVCVY-sTRlydL2"
 
 @st.cache_data(ttl=300)
 def load_sueldos_data():
-  session = requests.Session()
+    session = requests.Session()
 
-  urls_to_try = [
-      f"https://docs.google.com/spreadsheets/d/{DRIVE_FILE_ID}/export?format=xlsx",
-      f"https://drive.google.com/uc?export=download&id={DRIVE_FILE_ID}",
-  ]
+    urls_to_try = [
+        f"https://docs.google.com/spreadsheets/d/{DRIVE_FILE_ID}/export?format=xlsx",
+        f"https://drive.google.com/uc?export=download&id={DRIVE_FILE_ID}",
+    ]
 
-  excel_bytes = None
-  for url in urls_to_try:
-    try:
-      res = session.get(url, timeout=30)
-      for key, val in res.cookies.items():
-        if key.startswith("download_warning"):
-          res = session.get(
-              f"{url}&confirm={val}"
-              if "export?format=xlsx" not in url
-              else url,
-              timeout=30,
-          )
-          break
+    excel_bytes = None
+    for url in urls_to_try:
+        try:
+            res = session.get(url, timeout=30)
+            for key, val in res.cookies.items():
+                if key.startswith("download_warning"):
+                    res = session.get(
+                        f"{url}&confirm={val}"
+                        if "export?format=xlsx" not in url
+                        else url,
+                        timeout=30,
+                    )
+                    break
 
-      if res.content.startswith(b"PK\x03\x04"):
-        excel_bytes = res.content
-        break
-    except Exception:
-      continue
+            if res.content.startswith(b"PK\x03\x04"):
+                excel_bytes = res.content
+                break
+        except Exception:
+            continue
 
-  if not excel_bytes:
-    raise ValueError(
-        "No se pudo descargar el archivo de Excel. Revisa que en Google Drive"
-        " el archivo tenga acceso 'Cualquier persona con el enlace'."
+    if not excel_bytes:
+        raise ValueError(
+            "No se pudo descargar el archivo de Excel. Revisa que en Google Drive"
+            " el archivo tenga acceso 'Cualquier persona con el enlace'."
+        )
+
+    df = pd.read_excel(
+        io.BytesIO(excel_bytes), sheet_name="Consulta1", engine="openpyxl"
+    )
+    df.columns = [str(c).strip().upper() for c in df.columns]
+
+    # Extraer año numérico de la columna ANO
+    df["AÑO"] = (
+        df["ANO"].astype(str).str.extract(r"(\d{4})").astype(float).fillna(0).astype(int)
     )
 
-  df = pd.read_excel(
-      io.BytesIO(excel_bytes), sheet_name="Consulta1", engine="openpyxl"
-  )
-  df.columns = [str(c).strip().upper() for c in df.columns]
+    # Ordenar números de mes
+    orden_meses = [
+        "ENERO",
+        "FEBRERO",
+        "MARZO",
+        "ABRIL",
+        "MAYO",
+        "JUNIO",
+        "JULIO",
+        "AGOSTO",
+        "SEPTIEMBRE",
+        "OCTUBRE",
+        "NOVIEMBRE",
+        "DICIEMBRE",
+    ]
+    df["MES_NUM"] = df["MESES"].apply(
+        lambda x: orden_meses.index(str(x).strip().upper()) + 1
+        if str(x).strip().upper() in orden_meses
+        else 99
+    )
 
-  # Extraer año numérico de la columna ANO
-  df["AÑO"] = (
-      df["ANO"].astype(str).str.extract(r"(\d{4})").astype(float).fillna(0).astype(int)
-  )
+    # Columnas numéricas
+    num_cols = [
+        "SUELDO BASE",
+        "HORAS EXTRAS",
+        "BONOS",
+        "DECIMO TERCERO",
+        "DECIMO CUARTO",
+        "FONDOS DE RESERVA",
+        "IESS",
+    ]
+    for c in num_cols:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0.0)
 
-  # Ordenar números de mes
-  orden_meses = [
-      "ENERO",
-      "FEBRERO",
-      "MARZO",
-      "ABRIL",
-      "MAYO",
-      "JUNIO",
-      "JULIO",
-      "AGOSTO",
-      "SEPTIEMBRE",
-      "OCTUBRE",
-      "NOVIEMBRE",
-      "DICIEMBRE",
-  ]
-  df["MES_NUM"] = df["MESES"].apply(
-      lambda x: orden_meses.index(str(x).strip().upper()) + 1
-      if str(x).strip().upper() in orden_meses
-      else 99
-  )
+    # Filtrar registros vacíos o sin valor
+    df["INGRESO_BRUTO"] = df[num_cols[:-1]].sum(axis=1)
+    df = df[df["INGRESO_BRUTO"] > 0].copy()
 
-  # Columnas numéricas
-  num_cols = [
-      "SUELDO BASE",
-      "HORAS EXTRAS",
-      "BONOS",
-      "DECIMO TERCERO",
-      "DECIMO CUARTO",
-      "FONDOS DE RESERVA",
-      "IESS",
-  ]
-  for c in num_cols:
-    if c in df.columns:
-      df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0.0)
+    # Calcular Ingreso Neto
+    df["INGRESO_NETO"] = df["INGRESO_BRUTO"] - df["IESS"]
 
-  # Filtrar registros vacíos o sin valor
-  df["INGRESO_BRUTO"] = df[num_cols[:-1]].sum(axis=1)
-  df = df[df["INGRESO_BRUTO"] > 0].copy()
-
-  # Calcular Ingreso Neto
-  df["INGRESO_NETO"] = df["INGRESO_BRUTO"] - df["IESS"]
-
-  return df
+    return df
 
 
 try:
-  with st.spinner("Cargando ingresos desde Google Drive..."):
-    df_raw = load_sueldos_data()
+    with st.spinner("Cargando ingresos desde Google Drive..."):
+        df_raw = load_sueldos_data()
 except Exception as e:
-  st.error(f"Error al conectar con Google Drive: {e}")
-  st.stop()
+    st.error(f"Error al conectar con Google Drive: {e}")
+    st.stop()
 
 # ---------------------------------------------------------
 # CABECERA & BOTÓN REFRESCAR
 # ---------------------------------------------------------
 header_col1, header_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
 with header_col1:
-  st.markdown(
-      "<h3 style='margin: 0; color: #FFFFFF !important;'>💵 Sueldos"
-      " Detallados</h3>",
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        "<h3 style='margin: 0; color: #FFFFFF !important;'>💵 Sueldos"
+        " Detallados</h3>",
+        unsafe_allow_html=True,
+    )
 with header_col2:
-  if st.button("🔄 Refrescar", use_container_width=True):
-    st.cache_data.clear()
-    st.rerun()
+    if st.button("🔄 Refrescar", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 
 # ---------------------------------------------------------
 # FILTRO PRINCIPAL POR AÑO (ESTILO RADIO BUTTONS)
@@ -419,7 +419,7 @@ f_anio = st.radio(
 
 df_filtrado = df_raw.copy()
 if f_anio != "Todos":
-  df_filtrado = df_filtrado[df_filtrado["AÑO"] == int(f_anio)]
+    df_filtrado = df_filtrado[df_filtrado["AÑO"] == int(f_anio)]
 
 # ---------------------------------------------------------
 # KPI 1: TIEMPO TRANSCURRIDO DE TRABAJO (ARRIBA)
@@ -427,29 +427,29 @@ if f_anio != "Todos":
 df_sorted = df_filtrado.sort_values(by=["AÑO", "MES_NUM"], ascending=True)
 
 if not df_sorted.empty:
-  min_row = df_sorted.iloc[0]
-  max_row = df_sorted.iloc[-1]
+    min_row = df_sorted.iloc[0]
+    max_row = df_sorted.iloc[-1]
 
-  min_y = int(min_row["AÑO"])
-  min_m_num = int(min_row["MES_NUM"])
-  min_m_name = str(min_row["MESES"]).strip().capitalize()
+    min_y = int(min_row["AÑO"])
+    min_m_num = int(min_row["MES_NUM"])
+    min_m_name = str(min_row["MESES"]).strip().capitalize()
 
-  max_y = int(max_row["AÑO"])
-  max_m_num = int(max_row["MES_NUM"])
-  max_m_name = str(max_row["MESES"]).strip().capitalize()
+    max_y = int(max_row["AÑO"])
+    max_m_num = int(max_row["MES_NUM"])
+    max_m_name = str(max_row["MESES"]).strip().capitalize()
 
-  total_months_count = (max_y - min_y) * 12 + (max_m_num - min_m_num + 1)
-  total_years_decimal = round(total_months_count / 12, 1)
+    total_months_count = (max_y - min_y) * 12 + (max_m_num - min_m_num + 1)
+    total_years_decimal = round(total_months_count / 12, 1)
 
-  start_dt = date(min_y, min_m_num, 1)
-  _, last_day = monthrange(max_y, max_m_num)
-  end_dt = date(max_y, max_m_num, last_day)
-  total_days_elapsed = (end_dt - start_dt).days + 1
+    start_dt = date(min_y, min_m_num, 1)
+    _, last_day = monthrange(max_y, max_m_num)
+    end_dt = date(max_y, max_m_num, last_day)
+    total_days_elapsed = (end_dt - start_dt).days + 1
 
-  rango_fechas_str = f"📅 {min_m_name} {min_y} ➔ {max_m_name} {max_y}"
+    rango_fechas_str = f"📅 {min_m_name} {min_y} ➔ {max_m_name} {max_y}"
 else:
-  total_years_decimal, total_months_count, total_days_elapsed = 0.0, 0, 0
-  rango_fechas_str = "Sin datos"
+    total_years_decimal, total_months_count, total_days_elapsed = 0.0, 0, 0
+    rango_fechas_str = "Sin datos"
 
 st.markdown(
     f"""
@@ -608,6 +608,7 @@ st.markdown(
         <div class="kpi-card-subtotal">
             <div class="kpi-lbl">💡 Eficiencia del Ingreso</div>
             <div class="kpi-val-eficiencia">{porcentaje_eficiencia:.2f}% <span style="font-size:0.75rem; color:#94A3B8;">Líquido</span></div>
+            <div style="font-size: 0.62rem; color: #94A3B8; font-weight: 600; margin-top: 3px;">(Ingreso Neto / Ingreso Bruto) × 100</div>
         </div>
     </div>
     """,
@@ -639,365 +640,365 @@ vista_grafico = st.radio(
 )
 
 if vista_grafico == "Evolución Anual":
-  df_evo_anual = (
-      df_raw.groupby("AÑO")["INGRESO_NETO"]
-      .sum()
-      .reset_index()
-      .sort_values(by="AÑO", ascending=True)
-  )
-  df_evo_anual["AÑO_STR"] = df_evo_anual["AÑO"].astype(str)
-
-  max_val = df_evo_anual["INGRESO_NETO"].max() if not df_evo_anual.empty else 1.0
-  text_positions = [
-      "inside" if val > (max_val * 0.50) else "outside"
-      for val in df_evo_anual["INGRESO_NETO"]
-  ]
-
-  fig = px.bar(
-      df_evo_anual,
-      x="INGRESO_NETO",
-      y="AÑO_STR",
-      orientation="h",
-      text_auto="$,.0f",
-      color="INGRESO_NETO",
-      color_continuous_scale=["#107C41", "#00E676", "#38BDF8"],
-  )
-
-  fig.update_traces(
-      textposition=text_positions,
-      textfont=dict(size=12, color="#FFFFFF"),
-      insidetextanchor="end",
-      hovertemplate=(
-          "<b>Año %{y}</b><br>Ingreso Neto Total: $%{x:,.2f}<extra></extra>"
-      ),
-      marker=dict(line=dict(color="#0E1117", width=1.5)),
-  )
-
-  fig.update_xaxes(
-      showgrid=False,
-      zeroline=False,
-      showticklabels=False,
-      fixedrange=True,
-      range=[0, max_val * 1.15],
-  )
-
-  fig.update_yaxes(
-      showgrid=False,
-      type="category",
-      fixedrange=True,
-      title_text="",
-  )
-
-  fig.update_layout(
-      title=dict(
-          text="<b>Evolución Anual</b>",
-          x=0.5,
-          xanchor="center",
-          y=0.92,
-          yanchor="top",
-          font=dict(size=18, color="#FFFFFF", family="sans-serif"),
-      ),
-      coloraxis_showscale=False,
-      paper_bgcolor="rgba(0,0,0,0)",
-      plot_bgcolor="rgba(0,0,0,0)",
-      font=dict(color="#FAFAFA", family="sans-serif", size=13),
-      margin=dict(t=50, b=10, l=10, r=25),
-      height=320,
-  )
-
-  st.plotly_chart(
-      fig,
-      use_container_width=True,
-      config={"displayModeBar": False},
-  )
-
-elif vista_grafico == "Ingresos Netos":
-  if f_anio == "Todos":
-    df_pie_neto = df_raw.groupby("AÑO")["INGRESO_NETO"].sum().reset_index()
-    df_pie_neto["LABEL"] = df_pie_neto["AÑO"].astype(str)
-    df_pie_neto = df_pie_neto.sort_values(by="AÑO", ascending=True)
-    t1 = "Distribución de Ingresos Netos"
-    t2 = "por Año (Todos)"
-  else:
-    df_pie_neto = (
-        df_filtrado.groupby(["MESES", "MES_NUM"])["INGRESO_NETO"]
+    df_evo_anual = (
+        df_raw.groupby("AÑO")["INGRESO_NETO"]
         .sum()
         .reset_index()
+        .sort_values(by="AÑO", ascending=True)
     )
-    df_pie_neto = df_pie_neto.sort_values(by="MES_NUM", ascending=True)
-    df_pie_neto["LABEL"] = df_pie_neto["MESES"].astype(str).str.capitalize()
-    t1 = "Distribución Mensual de Ingresos Netos"
-    t2 = f"Año {f_anio}"
+    df_evo_anual["AÑO_STR"] = df_evo_anual["AÑO"].astype(str)
 
-  tot_neto_graf = df_pie_neto["INGRESO_NETO"].sum()
+    max_val = df_evo_anual["INGRESO_NETO"].max() if not df_evo_anual.empty else 1.0
+    text_positions = [
+        "inside" if val > (max_val * 0.50) else "outside"
+        for val in df_evo_anual["INGRESO_NETO"]
+    ]
 
-  colors_neto = [
-      "#38BDF8",
-      "#00E676",
-      "#FBBF24",
-      "#A855F7",
-      "#FF5252",
-      "#EC4899",
-      "#00B4D8",
-      "#F59E0B",
-      "#C084FC",
-      "#2EC4B6",
-      "#E879F9",
-      "#3B82F6",
-  ]
+    fig = px.bar(
+        df_evo_anual,
+        x="INGRESO_NETO",
+        y="AÑO_STR",
+        orientation="h",
+        text_auto="$,.0f",
+        color="INGRESO_NETO",
+        color_continuous_scale=["#107C41", "#00E676", "#38BDF8"],
+    )
 
-  title_html = (
-      f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2} • Total: ${tot_neto_graf:,.2f}</span>"
-  )
+    fig.update_traces(
+        textposition=text_positions,
+        textfont=dict(size=12, color="#FFFFFF"),
+        insidetextanchor="end",
+        hovertemplate=(
+            "<b>Año %{y}</b><br>Ingreso Neto Total: $%{x:,.2f}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#0E1117", width=1.5)),
+    )
 
-  fig = px.pie(
-      df_pie_neto,
-      names="LABEL",
-      values="INGRESO_NETO",
-      color="LABEL",
-      color_discrete_sequence=colors_neto,
-      hole=0.45,
-  )
+    fig.update_xaxes(
+        showgrid=False,
+        zeroline=False,
+        showticklabels=False,
+        fixedrange=True,
+        range=[0, max_val * 1.15],
+    )
 
-  fig.update_traces(
-      textposition="outside",
-      textinfo="percent+label",
-      hovertemplate=(
-          "<b>%{label}</b><br>Ingreso Neto:"
-          " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
-      ),
-      marker=dict(line=dict(color="#0E1117", width=2.5)),
-      domain=dict(y=[0.02, 0.74]),
-  )
+    fig.update_yaxes(
+        showgrid=False,
+        type="category",
+        fixedrange=True,
+        title_text="",
+    )
 
-  fig.update_layout(
-      title=dict(
-          text=title_html,
-          x=0.5,
-          xanchor="center",
-          y=0.94,
-          yanchor="top",
-          font=dict(size=17, color="#FFFFFF", family="sans-serif"),
-      ),
-      paper_bgcolor="rgba(0,0,0,0)",
-      plot_bgcolor="rgba(0,0,0,0)",
-      font=dict(color="#FAFAFA", family="sans-serif", size=13),
-      showlegend=True,
-      legend=dict(
-          title=dict(
-              text="💡 Leyenda (Clic para filtrar / ocultar):",
-              font=dict(size=14, color="#FFFFFF"),
-          ),
-          orientation="h",
-          yanchor="top",
-          y=-0.20,
-          xanchor="center",
-          x=0.5,
-          font=dict(size=13, color="#E2E8F0"),
-      ),
-      margin=dict(t=85, b=85, l=15, r=15),
-      height=430,
-  )
+    fig.update_layout(
+        title=dict(
+            text="<b>Evolución Anual</b>",
+            x=0.5,
+            xanchor="center",
+            y=0.92,
+            yanchor="top",
+            font=dict(size=18, color="#FFFFFF", family="sans-serif"),
+        ),
+        coloraxis_showscale=False,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA", family="sans-serif", size=13),
+        margin=dict(t=50, b=10, l=10, r=25),
+        height=320,
+    )
 
-  st.plotly_chart(
-      fig,
-      use_container_width=True,
-      config={"displayModeBar": False, "responsive": True},
-  )
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False},
+    )
+
+elif vista_grafico == "Ingresos Netos":
+    if f_anio == "Todos":
+        df_pie_neto = df_raw.groupby("AÑO")["INGRESO_NETO"].sum().reset_index()
+        df_pie_neto["LABEL"] = df_pie_neto["AÑO"].astype(str)
+        df_pie_neto = df_pie_neto.sort_values(by="AÑO", ascending=True)
+        t1 = "Distribución de Ingresos Netos"
+        t2 = "por Año (Todos)"
+    else:
+        df_pie_neto = (
+            df_filtrado.groupby(["MESES", "MES_NUM"])["INGRESO_NETO"]
+            .sum()
+            .reset_index()
+        )
+        df_pie_neto = df_pie_neto.sort_values(by="MES_NUM", ascending=True)
+        df_pie_neto["LABEL"] = df_pie_neto["MESES"].astype(str).str.capitalize()
+        t1 = "Distribución Mensual de Ingresos Netos"
+        t2 = f"Año {f_anio}"
+
+    tot_neto_graf = df_pie_neto["INGRESO_NETO"].sum()
+
+    colors_neto = [
+        "#38BDF8",
+        "#00E676",
+        "#FBBF24",
+        "#A855F7",
+        "#FF5252",
+        "#EC4899",
+        "#00B4D8",
+        "#F59E0B",
+        "#C084FC",
+        "#2EC4B6",
+        "#E879F9",
+        "#3B82F6",
+    ]
+
+    title_html = (
+        f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
+        f" 600;'>{t2} • Total: ${tot_neto_graf:,.2f}</span>"
+    )
+
+    fig = px.pie(
+        df_pie_neto,
+        names="LABEL",
+        values="INGRESO_NETO",
+        color="LABEL",
+        color_discrete_sequence=colors_neto,
+        hole=0.45,
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        textinfo="percent+label",
+        hovertemplate=(
+            "<b>%{label}</b><br>Ingreso Neto:"
+            " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#0E1117", width=2.5)),
+        domain=dict(y=[0.02, 0.74]),
+    )
+
+    fig.update_layout(
+        title=dict(
+            text=title_html,
+            x=0.5,
+            xanchor="center",
+            y=0.94,
+            yanchor="top",
+            font=dict(size=17, color="#FFFFFF", family="sans-serif"),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA", family="sans-serif", size=13),
+        showlegend=True,
+        legend=dict(
+            title=dict(
+                text="💡 Leyenda (Clic para filtrar / ocultar):",
+                font=dict(size=14, color="#FFFFFF"),
+            ),
+            orientation="h",
+            yanchor="top",
+            y=-0.20,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=13, color="#E2E8F0"),
+        ),
+        margin=dict(t=85, b=85, l=15, r=15),
+        height=430,
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False, "responsive": True},
+    )
 
 elif vista_grafico == "Ingresos Gravables":
-  df_grav_pie = pd.DataFrame([
-      {"Categoría": "Sueldo<br>Base", "Monto": tot_sueldo_base},
-      {"Categoría": "Horas<br>Extras", "Monto": tot_horas_extras},
-      {"Categoría": "Bonos", "Monto": tot_bonos},
-  ])
-  df_grav_pie = df_grav_pie[df_grav_pie["Monto"] > 0]
+    df_grav_pie = pd.DataFrame([
+        {"Categoría": "Sueldo<br>Base", "Monto": tot_sueldo_base},
+        {"Categoría": "Horas<br>Extras", "Monto": tot_horas_extras},
+        {"Categoría": "Bonos", "Monto": tot_bonos},
+    ])
+    df_grav_pie = df_grav_pie[df_grav_pie["Monto"] > 0]
 
-  colors_grav_map = {
-      "Sueldo<br>Base": "#38BDF8",
-      "Horas<br>Extras": "#FBBF24",
-      "Bonos": "#EC4899",
-  }
+    colors_grav_map = {
+        "Sueldo<br>Base": "#38BDF8",
+        "Horas<br>Extras": "#FBBF24",
+        "Bonos": "#EC4899",
+    }
 
-  sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
-  t1 = "Composición de Ingresos Gravables"
-  t2 = f"({sub_txt})"
-  tot_grav_graf = df_grav_pie["Monto"].sum()
+    sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
+    t1 = "Composición de Ingresos Gravables"
+    t2 = f"({sub_txt})"
+    tot_grav_graf = df_grav_pie["Monto"].sum()
 
-  title_html = (
-      f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2} • Total: ${tot_grav_graf:,.2f}</span>"
-  )
+    title_html = (
+        f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
+        f" 600;'>{t2} • Total: ${tot_grav_graf:,.2f}</span>"
+    )
 
-  fig = px.pie(
-      df_grav_pie,
-      names="Categoría",
-      values="Monto",
-      color="Categoría",
-      color_discrete_map=colors_grav_map,
-      hole=0.42,
-  )
+    fig = px.pie(
+        df_grav_pie,
+        names="Categoría",
+        values="Monto",
+        color="Categoría",
+        color_discrete_map=colors_grav_map,
+        hole=0.42,
+    )
 
-  fig.update_traces(
-      textposition="outside",
-      textinfo="percent+label",
-      hovertemplate=(
-          "<b>%{label}</b><br>Monto:"
-          " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
-      ),
-      marker=dict(line=dict(color="#0E1117", width=2.5)),
-      domain=dict(y=[0.02, 0.74]),
-  )
+    fig.update_traces(
+        textposition="outside",
+        textinfo="percent+label",
+        hovertemplate=(
+            "<b>%{label}</b><br>Monto:"
+            " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#0E1117", width=2.5)),
+        domain=dict(y=[0.02, 0.74]),
+    )
 
-  fig.update_layout(
-      title=dict(
-          text=title_html,
-          x=0.5,
-          xanchor="center",
-          y=0.94,
-          yanchor="top",
-          font=dict(size=17, color="#FFFFFF", family="sans-serif"),
-      ),
-      paper_bgcolor="rgba(0,0,0,0)",
-      plot_bgcolor="rgba(0,0,0,0)",
-      font=dict(color="#FAFAFA", family="sans-serif", size=13),
-      showlegend=True,
-      legend=dict(
-          title=dict(
-              text="💡 Leyenda (Clic para filtrar / ocultar):",
-              font=dict(size=14, color="#FFFFFF"),
-          ),
-          orientation="h",
-          yanchor="top",
-          y=-0.20,
-          xanchor="center",
-          x=0.5,
-          font=dict(size=13, color="#E2E8F0"),
-      ),
-      margin=dict(t=85, b=90, l=15, r=15),
-      height=440,
-  )
+    fig.update_layout(
+        title=dict(
+            text=title_html,
+            x=0.5,
+            xanchor="center",
+            y=0.94,
+            yanchor="top",
+            font=dict(size=17, color="#FFFFFF", family="sans-serif"),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA", family="sans-serif", size=13),
+        showlegend=True,
+        legend=dict(
+            title=dict(
+                text="💡 Leyenda (Clic para filtrar / ocultar):",
+                font=dict(size=14, color="#FFFFFF"),
+            ),
+            orientation="h",
+            yanchor="top",
+            y=-0.20,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=13, color="#E2E8F0"),
+        ),
+        margin=dict(t=85, b=90, l=15, r=15),
+        height=440,
+    )
 
-  st.plotly_chart(
-      fig,
-      use_container_width=True,
-      config={"displayModeBar": False, "responsive": True},
-  )
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False, "responsive": True},
+    )
 
 elif vista_grafico == "Beneficios de Ley":
-  df_ben_pie = pd.DataFrame([
-      {"Beneficio": "Décimo<br>Tercero", "Monto": tot_decimo_tercero},
-      {"Beneficio": "Décimo<br>Cuarto", "Monto": tot_decimo_cuarto},
-      {"Beneficio": "Fondos de<br>Reserva", "Monto": tot_fondos_reserva},
-  ])
-  df_ben_pie = df_ben_pie[df_ben_pie["Monto"] > 0]
+    df_ben_pie = pd.DataFrame([
+        {"Beneficio": "Décimo<br>Tercero", "Monto": tot_decimo_tercero},
+        {"Beneficio": "Décimo<br>Cuarto", "Monto": tot_decimo_cuarto},
+        {"Beneficio": "Fondos de<br>Reserva", "Monto": tot_fondos_reserva},
+    ])
+    df_ben_pie = df_ben_pie[df_ben_pie["Monto"] > 0]
 
-  colors_ben_map = {
-      "Décimo<br>Tercero": "#00E676",
-      "Décimo<br>Cuarto": "#818CF8",
-      "Fondos de<br>Reserva": "#C084FC",
-  }
+    colors_ben_map = {
+        "Décimo<br>Tercero": "#00E676",
+        "Décimo<br>Cuarto": "#818CF8",
+        "Fondos de<br>Reserva": "#C084FC",
+    }
 
-  sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
-  t1 = "Composición de Beneficios de Ley"
-  t2 = f"({sub_txt})"
-  tot_ben_graf = df_ben_pie["Monto"].sum()
+    sub_txt = "Historial Completo" if f_anio == "Todos" else f"Año {f_anio}"
+    t1 = "Composición de Beneficios de Ley"
+    t2 = f"({sub_txt})"
+    tot_ben_graf = df_ben_pie["Monto"].sum()
 
-  title_html = (
-      f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
-      f" 600;'>{t2} • Total: ${tot_ben_graf:,.2f}</span>"
-  )
+    title_html = (
+        f"<b>{t1}</b><br><span style='font-size: 0.90rem; font-weight:"
+        f" 600;'>{t2} • Total: ${tot_ben_graf:,.2f}</span>"
+    )
 
-  fig = px.pie(
-      df_ben_pie,
-      names="Beneficio",
-      values="Monto",
-      color="Beneficio",
-      color_discrete_map=colors_ben_map,
-      hole=0.42,
-  )
+    fig = px.pie(
+        df_ben_pie,
+        names="Beneficio",
+        values="Monto",
+        color="Beneficio",
+        color_discrete_map=colors_ben_map,
+        hole=0.42,
+    )
 
-  fig.update_traces(
-      textposition="outside",
-      textinfo="percent+label",
-      hovertemplate=(
-          "<b>%{label}</b><br>Monto:"
-          " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
-      ),
-      marker=dict(line=dict(color="#0E1117", width=2.5)),
-      domain=dict(y=[0.02, 0.74]),
-  )
+    fig.update_traces(
+        textposition="outside",
+        textinfo="percent+label",
+        hovertemplate=(
+            "<b>%{label}</b><br>Monto:"
+            " $%{value:,.2f}<br>Porcentaje: %{percent}<extra></extra>"
+        ),
+        marker=dict(line=dict(color="#0E1117", width=2.5)),
+        domain=dict(y=[0.02, 0.74]),
+    )
 
-  fig.update_layout(
-      title=dict(
-          text=title_html,
-          x=0.5,
-          xanchor="center",
-          y=0.94,
-          yanchor="top",
-          font=dict(size=17, color="#FFFFFF", family="sans-serif"),
-      ),
-      paper_bgcolor="rgba(0,0,0,0)",
-      plot_bgcolor="rgba(0,0,0,0)",
-      font=dict(color="#FAFAFA", family="sans-serif", size=13),
-      showlegend=True,
-      legend=dict(
-          title=dict(
-              text="💡 Leyenda (Clic para filtrar / ocultar):",
-              font=dict(size=14, color="#FFFFFF"),
-          ),
-          orientation="h",
-          yanchor="top",
-          y=-0.20,
-          xanchor="center",
-          x=0.5,
-          font=dict(size=13, color="#E2E8F0"),
-      ),
-      margin=dict(t=85, b=90, l=15, r=15),
-      height=440,
-  )
+    fig.update_layout(
+        title=dict(
+            text=title_html,
+            x=0.5,
+            xanchor="center",
+            y=0.94,
+            yanchor="top",
+            font=dict(size=17, color="#FFFFFF", family="sans-serif"),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#FAFAFA", family="sans-serif", size=13),
+        showlegend=True,
+        legend=dict(
+            title=dict(
+                text="💡 Leyenda (Clic para filtrar / ocultar):",
+                font=dict(size=14, color="#FFFFFF"),
+            ),
+            orientation="h",
+            yanchor="top",
+            y=-0.20,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=13, color="#E2E8F0"),
+        ),
+        margin=dict(t=85, b=90, l=15, r=15),
+        height=440,
+    )
 
-  st.plotly_chart(
-      fig,
-      use_container_width=True,
-      config={"displayModeBar": False, "responsive": True},
-  )
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False, "responsive": True},
+    )
 
 # ---------------------------------------------------------
 # SECCIÓN 6: KPIS IMPUESTO A LA RENTA (SOLO CUANDO SE SELECCIONA UN AÑO ESPECÍFICO)
 # ---------------------------------------------------------
 if f_anio != "Todos":
-  base_imponible_ir = tot_materia_gravable - tot_iess
-  limite_ir = 12081.00
-  paga_ir_bool = base_imponible_ir > limite_ir
+    base_imponible_ir = tot_materia_gravable - tot_iess
+    limite_ir = 12081.00
+    paga_ir_bool = base_imponible_ir > limite_ir
 
-  estado_ir_texto = "Sí Paga Impuestos" if paga_ir_bool else "No Paga Impuestos"
-  color_estado_ir = "#FF5252" if paga_ir_bool else "#00E676"
+    estado_ir_texto = "Sí Paga Impuestos" if paga_ir_bool else "No Paga Impuestos"
+    color_estado_ir = "#FF5252" if paga_ir_bool else "#00E676"
 
-  st.markdown(
-      f"""
-      <div class="section-header" style="color: #FBBF24; margin-top: 18px;">
-          🏛️ Cálculo Impuesto a la Renta (Año {f_anio})
-      </div>
-      <div class="kpi-grid-3">
-          <div class="kpi-card-box">
-              <div class="kpi-lbl">Ingreso Neto Gravable</div>
-              <div class="kpi-val-tot-grav">${base_imponible_ir:,.2f}</div>
-          </div>
-          <div class="kpi-card-box">
-              <div class="kpi-lbl">Base Mínima IR</div>
-              <div class="kpi-val-base">${limite_ir:,.2f}</div>
-          </div>
-          <div class="kpi-card-box" style="border-color: {color_estado_ir};">
-              <div class="kpi-lbl">Estado Impuestos</div>
-              <div style="font-size: 0.95rem; font-weight: 900; color: {color_estado_ir};">{estado_ir_texto}</div>
-          </div>
-      </div>
-      """,
-      unsafe_allow_html=True,
-  )
+    st.markdown(
+        f"""
+        <div class="section-header" style="color: #FBBF24; margin-top: 18px;">
+            🏛️ Cálculo Impuesto a la Renta (Año {f_anio})
+        </div>
+        <div class="kpi-grid-3">
+            <div class="kpi-card-box">
+                <div class="kpi-lbl">Ingreso Neto Gravable</div>
+                <div class="kpi-val-tot-grav">${base_imponible_ir:,.2f}</div>
+            </div>
+            <div class="kpi-card-box">
+                <div class="kpi-lbl">Base Mínima IR</div>
+                <div class="kpi-val-base">${limite_ir:,.2f}</div>
+            </div>
+            <div class="kpi-card-box" style="border-color: {color_estado_ir};">
+                <div class="kpi-lbl">Estado Impuestos</div>
+                <div style="font-size: 0.95rem; font-weight: 900; color: {color_estado_ir};">{estado_ir_texto}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 if __name__ == "__main__":
-  if "streamlit" not in sys.argv[0]:
-    os.system(f'streamlit run "{__file__}" --server.port 8501')
+    if "streamlit" not in sys.argv[0]:
+        os.system(f'streamlit run "{__file__}" --server.port 8501')
